@@ -12,7 +12,11 @@ interface IERC20Errors {
      * @param balance Current balance for the interacting account.
      * @param needed Minimum amount required to perform a transfer.
      */
-    error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed);
+    error ERC20InsufficientBalance(
+        address sender,
+        uint256 balance,
+        uint256 needed
+    );
 
     /**
      * @dev Indicates a failure with the token `sender`. Used in transfers.
@@ -32,7 +36,11 @@ interface IERC20Errors {
      * @param allowance Amount of tokens a `spender` is allowed to operate with.
      * @param needed Minimum amount required to perform a transfer.
      */
-    error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed);
+    error ERC20InsufficientAllowance(
+        address spender,
+        uint256 allowance,
+        uint256 needed
+    );
 
     /**
      * @dev Indicates a failure with the `approver` of a token to be approved. Used in approvals.
@@ -50,17 +58,30 @@ interface IERC20Errors {
 interface IERC20 {
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
-    function transfer(address recipient, uint256 amount) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint256);
+    function transfer(
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
     function approve(address spender, uint256 amount) external returns (bool);
-    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
 
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
 }
 
 contract MyERC is IERC20, IERC20Errors {
-
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address spender => uint256)) private _allowances;
 
@@ -69,7 +90,7 @@ contract MyERC is IERC20, IERC20Errors {
     function name() public pure returns (string memory) {
         return "Favorite Number Coin";
     }
-    
+
     function symbol() public pure returns (string memory) {
         return "FNC";
     }
@@ -79,10 +100,13 @@ contract MyERC is IERC20, IERC20Errors {
     }
 
     function totalSupply() public view returns (uint256) {
-        return _totalSupply;        
+        return _totalSupply;
     }
 
-    function allowance (address owner, address spender) public view returns (uint256) {
+    function allowance(
+        address owner,
+        address spender
+    ) public view returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -100,13 +124,17 @@ contract MyERC is IERC20, IERC20Errors {
         return true;
     }
 
-    function approve(address spender, uint256 value) public  returns (bool) {
+    function approve(address spender, uint256 value) public returns (bool) {
         address owner = msg.sender;
         _approve(owner, spender, value);
         return true;
-    } 
+    }
 
-    function transferFrom(address from, address to, uint256 value) public returns (bool) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) public returns (bool) {
         _beforeTransferFrom();
         address spender = msg.sender;
         _spendAllowance(from, spender, value);
@@ -175,13 +203,16 @@ contract MyERC is IERC20, IERC20Errors {
         emit Approval(owner, spender, value);
     }
 
-    function _spendAllowance(address owner, address spender, uint256 value) internal {
+    function _spendAllowance(
+        address owner,
+        address spender,
+        uint256 value
+    ) internal {
         uint256 currentAllowance = allowance(owner, spender);
 
         if (currentAllowance < value) {
             revert ERC20InsufficientAllowance(spender, currentAllowance, value);
         }
         _approve(owner, spender, currentAllowance - value);
-        
     }
 }

@@ -31,20 +31,58 @@ describe("Token", function () {
       expect(tokenContract.connect(owner).setBuyFeePercentage(11)).to.be.revertedWith("Sho?");
     });
   });
+  describe("Mint/Burn", function () {
+    it("Should mint correctly", async function () {
+      const { tokenContract, otherAccount } = await loadFixture(deployTokenFixture);
 
+      await tokenContract._mint(otherAccount.address, 100)
+
+      expect(await tokenContract.balanceOf(otherAccount.address)).to.be.equal(100);
+    });
+    it("Should burn correctly", async function () {
+      const { tokenContract, otherAccount } = await loadFixture(deployTokenFixture);
+
+      await tokenContract._mint(otherAccount.address, 100)
+      expect(await tokenContract.balanceOf(otherAccount.address)).to.be.equal(100);
+      
+      await tokenContract._burn(otherAccount.address, 100)
+      expect(await tokenContract.balanceOf(otherAccount.address)).to.be.equal(0);
+    });
+    it("Should colect and burn fee correctly", async function () {
+      const { tokenContract, otherAccount } = await loadFixture(deployTokenFixture);
+
+      expect((await tokenContract.connect(otherAccount)._buy({value: 10000}))).to.emit(tokenContract, "TokensSwapped") // tokenPrice is 100
+
+      expect(await tokenContract.balanceOf(otherAccount.address)).to.be.equal(99); // feee!
+
+      expect(await tokenContract.feeBalance()).to.be.equal(1)
+      await tokenContract._burnFee()
+      expect(await tokenContract.feeBalance()).to.be.equal(0)
+    });
+  })
   describe("Buy and Sell", function () {
-    // it("Should allow buying tokens with correct amount", async function () {
-    //   // const { tokenContract, owner, otherAccount, otherAccount2 } = await loadFixture(deployTokenFixture);
+    it("Should allow buying tokens with correct amount", async function () {
+      const { tokenContract, otherAccount, owner } = await loadFixture(deployTokenFixture);
 
-    //   // // const initialBalance = await tokenContract.balanceOf(otherAccount.address);
+      await owner.sendTransaction({
+        to: otherAccount.address,
+        value: 100000000,
+      });
 
-    //   // expect(() => tokenContract.connect(otherAccount)._buy()).to.changeTokenBalance(tokenContract, otherAccount, 100); // Assuming tokenPrice is 100
-    //   // expect(await tokenContract.feeBalance()).to.be.equal(1); // Assuming fee is 1%
-    // });
+      expect((await tokenContract.connect(otherAccount)._buy({value: 100}))).to.emit(tokenContract, "TokensSwapped") // tokenPrice is 100
+
+      expect(await tokenContract.balanceOf(otherAccount.address)).to.be.equal(1);
+    });
 
     it("Should allow selling tokens with correct amount", async function () {
-      const { tokenContract, otherAccount } = await loadFixture(deployTokenFixture);
+      const { tokenContract, otherAccount, owner } = await loadFixture(deployTokenFixture);
       await tokenContract._mint(otherAccount, 100);
+
+      await owner.sendTransaction({
+        to: await tokenContract.getAddress(),
+        value: 100000000,
+      });
+
       expect((await tokenContract.connect(otherAccount)._sell(100))).to.emit(tokenContract, "TokensSwapped") // tokenPrice is 100
 
       expect(await tokenContract.feeBalance()).to.be.equal(1); // fee is 1%

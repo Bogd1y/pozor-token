@@ -5,12 +5,15 @@ import "./MyERC.sol";
 import "./Ownable.sol";
 
 contract Token is MyERC, Ownable {
-    // TODO TK PRICE
+
     uint public tokenPrice = 100;
     uint256 public fee = 1;
     uint256 public feeBalance;
 
     constructor(address initOwner) Ownable(initOwner) {}
+
+    // solhint-disable-next-line no-empty-blocks
+    receive() external payable {}
 
     function setBuyFeePercentage(uint256 _fee) external onlyOwner {
         require(_fee >= 1 && _fee <= 10, "Sho?");
@@ -38,12 +41,14 @@ contract Token is MyERC, Ownable {
     function _beforeSell() internal virtual {}
 
     function _buy() public payable {
-        // 1 wei = 1 my token
+        require(msg.value % tokenPrice == 0, "You should send exact amount to fit in price");
         uint256 tokenAmount = msg.value / tokenPrice;
 
-        uint curentFee = (tokenAmount * fee) / 100;
-        tokenAmount -= curentFee;
-        feeBalance += curentFee;
+        if(tokenAmount >= 100) {
+            uint curentFee = (tokenAmount * fee) / 100;
+            tokenAmount -= curentFee;
+            feeBalance += curentFee;
+        }
 
         require(msg.value > 0, "Lack of power!");
 
@@ -59,7 +64,7 @@ contract Token is MyERC, Ownable {
 
         require(balanceOf(msg.sender) >= tokenAmount, "Lack of power!");
 
-        _update(msg.sender, address(this), tokenAmount);
+        _update(msg.sender, address(0), tokenAmount);
 
         emit TokensSwapped(msg.sender, tokenAmount);
 
@@ -69,6 +74,10 @@ contract Token is MyERC, Ownable {
 
         // address payable receiver = payable(msg.sender);
         // receiver.transfer(tokenAmount);
-        // msg.sender.transfer(tokenAmount * tokenPrice);
+        payable(msg.sender).transfer(tokenAmount * tokenPrice);
+    }
+
+    function _burnFee() public onlyOwner {
+        feeBalance = 0;
     }
 }

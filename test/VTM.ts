@@ -126,7 +126,6 @@ describe("VoteMaxToken", function () {
         await voteMaxToken._mint(otherAccount2.address, 50);
         await voteMaxToken.connect(otherAccount).startVoting(200);
     
-        // await expect(await voteMaxToken.connect(otherAccount2).vote(201)).to.be.reverted;
         await expect(voteMaxToken.connect(otherAccount2).vote(201))
         .to.be.revertedWith("No such vote option!")
       });
@@ -180,25 +179,6 @@ describe("VoteMaxToken", function () {
         // Transfer tokens from A to B
         expect(voteMaxToken.connect(otherAccount).transfer(otherAccount2.address, 500)).to.be.revertedWith("You already participating in vote!");
       });
-
-      // it("", async function () {
-      //   const { voteMaxToken, owner, otherAccount, otherAccount2 } = await deployVoteMaxTokenFixture();
-  
-      //   await voteMaxToken._mint(owner.address, 1000);
-      //   // Mock user A and B balances
-      //   await voteMaxToken._mint(otherAccount.address, 1000);
-      //   await voteMaxToken._mint(otherAccount2.address, 1000);
-  
-      //   // Start voting
-      //   // await voteMaxToken.startVoting(200);
-      //   await voteMaxToken.startVoting(200);
-  
-      //   // User A votes
-      //   await voteMaxToken.connect(otherAccount).vote(200);
-  
-      //   // Transfer tokens from A to B
-      //   expect(voteMaxToken.connect(otherAccount).transfer(otherAccount2.address, 500)).to.be.revertedWith("You already participating in vote!");
-      // });
     });
 
     describe("Functionaly", function () {
@@ -221,7 +201,7 @@ describe("VoteMaxToken", function () {
         const expectedTimeLeft = await voteMaxToken.endDate() - BigInt(currentTimestamp);
     
         expect(timeLeftFromContract).to.equal(expectedTimeLeft, "Time left does not match expected value");
-    });
+      });
     
       it("Should set token price", async function () {
         const { voteMaxToken } = await loadFixture(deployVoteMaxTokenFixture);
@@ -231,6 +211,25 @@ describe("VoteMaxToken", function () {
         expect(await voteMaxToken.tokenPrice()).to.be.equal(123321);
       });
 
+      it("Should work with decimals price", async function () {
+        const { voteMaxToken, otherAccount, owner } = await loadFixture(deployVoteMaxTokenFixture);
+  
+        await owner.sendTransaction({
+          to: otherAccount.address,
+          value: 100000000,
+        });
+        await voteMaxToken.setTokenPrice(15) // 1 wei to 1.5 
+
+        expect((await voteMaxToken.connect(otherAccount)._buy({value: 100}))).to.emit(voteMaxToken, "TokensSwapped") // tokenPrice is 100
+  
+        expect(await voteMaxToken.balanceOf(otherAccount.address)).to.be.equal(66);
+        expect(await voteMaxToken.totalSupply()).to.be.equal(66);
+        
+        await expect((await voteMaxToken.connect(otherAccount)._sell(66))).to.emit(voteMaxToken, "TokensSwapped") // tokenPrice is 100
+  
+        expect(await voteMaxToken.balanceOf(otherAccount.address)).to.be.equal(0);
+        expect(await voteMaxToken.totalSupply()).to.be.equal(0);
+      });
     });
 
 })

@@ -45,8 +45,8 @@ contract Token is MyERC, Ownable {
         _beforeBuy();
 
         require(msg.value >= tokenPrice / _decimals, "Lack of power!");
-
-        uint256 tokenAmount = msg.value / (tokenPrice / _decimals);
+        // uint256 tokenAmount = msg.value / (tokenPrice / _decimals);
+        uint256 tokenAmount = msg.value * _decimals / tokenPrice;
 
         if (tokenAmount >= 100) {
             uint curentFee = (tokenAmount * fee) / 100;

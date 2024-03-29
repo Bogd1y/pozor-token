@@ -11,10 +11,3 @@ REPORT_GAS=true npx hardhat test
 npx hardhat node
 npx hardhat ignition deploy ./ignition/modules/Lock.ts
 ```
-
-# TO ASK
-
-how to ->
-
-1. TOken buy/sell
-2. addres transfer to  

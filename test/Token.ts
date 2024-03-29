@@ -28,7 +28,7 @@ describe("Token", function () {
     it("Should revert when setting buy fee percentage outside valid range", async function () {
       const { tokenContract, owner } = await loadFixture(deployTokenFixture);
 
-      expect(tokenContract.connect(owner).setBuyFeePercentage(11)).to.be.revertedWith("Sho?");
+      expect(tokenContract.connect(owner).setBuyFeePercentage(11)).to.be.revertedWith("Fee is not in valid range?");
     });
   });
   describe("Mint/Burn", function () {
@@ -48,20 +48,9 @@ describe("Token", function () {
       await tokenContract._burn(otherAccount.address, 100)
       expect(await tokenContract.balanceOf(otherAccount.address)).to.be.equal(0);
     });
-    it("Should colect and burn fee correctly", async function () {
-      const { tokenContract, otherAccount } = await loadFixture(deployTokenFixture);
-
-      expect((await tokenContract.connect(otherAccount)._buy({value: 10000}))).to.emit(tokenContract, "TokensSwapped") // tokenPrice is 100
-
-      expect(await tokenContract.balanceOf(otherAccount.address)).to.be.equal(99); // feee!
-
-      expect(await tokenContract.feeBalance()).to.be.equal(1)
-      await tokenContract._burnFee()
-      expect(await tokenContract.feeBalance()).to.be.equal(0)
-    });
   })
   describe("Buy and Sell", function () {
-    it("Should allow buying tokens with correct amount", async function () {
+    it("Should allow buying tokens with correct amount and correct total supply", async function () {
       const { tokenContract, otherAccount, owner } = await loadFixture(deployTokenFixture);
 
       await owner.sendTransaction({
@@ -71,10 +60,10 @@ describe("Token", function () {
 
       expect((await tokenContract.connect(otherAccount)._buy({value: 100}))).to.emit(tokenContract, "TokensSwapped") // tokenPrice is 100
 
-      expect(await tokenContract.balanceOf(otherAccount.address)).to.be.equal(1);
+      expect(await tokenContract.balanceOf(otherAccount.address)).to.be.equal(10);
+      expect(await tokenContract.totalSupply()).to.be.equal(10);
     });
-
-    it("Should allow selling tokens with correct amount", async function () {
+    it("Should allow selling tokens with correct amount and correct total supply", async function () {
       const { tokenContract, otherAccount, owner } = await loadFixture(deployTokenFixture);
       await tokenContract._mint(otherAccount, 100);
 
@@ -87,9 +76,36 @@ describe("Token", function () {
 
       expect(await tokenContract.feeBalance()).to.be.equal(1); // fee is 1%
       expect(await tokenContract.balanceOf(otherAccount.address)).to.be.equal(0);
+      expect(await tokenContract.totalSupply()).to.be.equal(1);
     });
+    it("Should colect and burn fee correctly", async function () {
+      const { tokenContract, otherAccount, owner } = await loadFixture(deployTokenFixture);
 
+      await owner.sendTransaction({
+        to: otherAccount.address,
+        value: 100000000,
+      });
+
+      expect((await tokenContract.connect(otherAccount)._buy({value: 10000}))).to.emit(tokenContract, "TokensSwapped") // tokenPrice is 100
+
+      expect(await tokenContract.decimals()).to.be.equal(10);
+      expect(await tokenContract.balanceOf(otherAccount.address)).to.be.equal(990); // feee! 10000 / (100 / 10) - 1% fee
+
+      expect(await tokenContract.feeBalance()).to.be.equal(10)
+      expect(await tokenContract.balanceOf(await tokenContract.getAddress())).to.be.equal(10)
+      await tokenContract._burnFee()
+      expect(await tokenContract.feeBalance()).to.be.equal(0)
+      expect(await tokenContract.balanceOf(await tokenContract.getAddress())).to.be.equal(0)
+    });
   });
+  describe("Naming", function () {
+    it("Should return correct naming of my token", async function () {
+      const { tokenContract } = await loadFixture(deployTokenFixture);
+
+      expect(await tokenContract.name()).to.be.equal("Vote Max Token");
+      expect(await tokenContract.symbol()).to.be.equal("VTM");
+    })
+  })
 
   describe("MyERC", function () {
     async function deployERC20Fixture() {
@@ -101,6 +117,12 @@ describe("Token", function () {
     }
   
     describe("transfer", function () {
+      it("Should fail when address_to is bad", async function () {
+        const { erc20Contract, otherAccount } = await loadFixture(deployERC20Fixture);
+
+        await expect(erc20Contract.transfer("0x0000000000000000000000000000000000000000", 100)).to.be.reverted;
+      });
+      
       it("Should allow transferring tokens with correct amount", async function () {
         const { erc20Contract, otherAccount } = await loadFixture(deployERC20Fixture);
 
@@ -119,6 +141,11 @@ describe("Token", function () {
     });
   
     describe("approve and transferFrom", function () {
+      it("Should fail when spender is address0", async function () {
+        const { erc20Contract } = await loadFixture(deployERC20Fixture);
+        await expect (erc20Contract.approve("0x0000000000000000000000000000000000000000", 100)).to.be.reverted;
+  
+      });
       it("Should allow approving and transferring tokens with correct amount", async function () {
         const { erc20Contract, owner, otherAccount } = await loadFixture(deployERC20Fixture);
         await erc20Contract.approve(otherAccount.address, 100);
@@ -129,7 +156,7 @@ describe("Token", function () {
   
       it("Should revert when transferring tokens with insufficient allowance", async function () {
         const { erc20Contract, owner, otherAccount } = await loadFixture(deployERC20Fixture);
-        expect(erc20Contract.connect(otherAccount).transferFrom(owner.address, otherAccount.address, 100)).to.be.revertedWithCustomError(erc20Contract, "ERC20InsufficientAllowance");
+        await expect(erc20Contract.connect(otherAccount).transferFrom(owner.address, otherAccount.address, 100)).to.be.revertedWithCustomError(erc20Contract, "ERC20InsufficientAllowance");
       });
     });
   });

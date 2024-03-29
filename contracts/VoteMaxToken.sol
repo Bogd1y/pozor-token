@@ -18,7 +18,6 @@ contract VoteMaxToken is Token {
     mapping(uint count => mapping(uint price => uint value)) votingPrices;
     mapping(uint count => mapping(address => bool)) hasVoted;
 
-    // uint public tokenPrice = 100;
     bool public isVotingGoing = false;
     uint public endDate;
     uint public highestVotedPriceNow;
@@ -37,7 +36,6 @@ contract VoteMaxToken is Token {
     function getTimeLeft() public view returns (uint) {
         return endDate - block.timestamp;
     }
-    // TODO ADD MORE GET FOr CLIENT
 
     modifier notVoted() {
         require(

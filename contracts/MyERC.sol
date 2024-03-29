@@ -86,17 +86,22 @@ contract MyERC is IERC20, IERC20Errors {
     mapping(address => mapping(address spender => uint256)) private _allowances;
 
     uint internal _totalSupply;
+    uint8 internal _decimals;
+
+    constructor(uint8 decimals_) {
+        _decimals = decimals_;
+    }
 
     function name() public pure returns (string memory) {
-        return "Favorite Number Coin";
+        return "Vote Max Token";
     }
 
     function symbol() public pure returns (string memory) {
-        return "FNC";
+        return "VTM";
     }
 
-    function decimals() public pure returns (uint8) {
-        return 18;
+    function decimals() public view returns (uint8) {
+        return _decimals;
     }
 
     function totalSupply() public view returns (uint256) {
